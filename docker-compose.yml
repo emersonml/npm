@@ -1,47 +1,103 @@
-version: '3'
+
 services:
-  app:
-    build: .
-    # image: 'esoft/nginx-proxy-manager:latest'
-    hostname: npm-app
-    restart: unless-stopped
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm
+    hostname: npm
+      #read_only: false
+      #cap_drop:
+      #- ALL
+
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=America/Maceio
+
+      # Banco
+      - DB_MYSQL_HOST=${MYSQL_DATABASE}
+      - DB_MYSQL_PORT=${MYSQL_PORT}
+      - DB_MYSQL_USER=${MYSQL_USER}
+      - DB_MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - DB_MYSQL_NAME=${MYSQL_DATABASE}
+
+    volumes:
+      - /srv/docker/volumes/npm/data:/data
+      - /srv/docker/volumes/npm/letsencrypt:/etc/letsencrypt
+
     ports:
-      - '80:80'    # HTTP
-      - '81:81'    # Admin interface
-      - '443:443'  # HTTPS
-    environment:
-      DB_MYSQL_HOST: ${DB_MYSQL_HOST}
-      DB_MYSQL_PORT: ${DB_MYSQL_PORT}
-      DB_MYSQL_USER: ${DB_MYSQL_USER}
-      DB_MYSQL_PASSWORD: ${DB_MYSQL_PASSWORD}
-      DB_MYSQL_NAME: ${DB_MYSQL_NAME}
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-      - /srv/volumes/npm/app_etc_letsencrypt/_data:/etc/letsencrypt
-      - /srv/volumes/npm/app/_data:/data
-    devices:
-      - "/dev/rtc:/dev/rtc:ro"
-    networks:
-      - default
-      - portainer_default
-    depends_on:
-      - db
+      - "80:80"
+      - "81:81"     # painel admin
+      - "443:443"
 
-  db:
-    image: 'yobasystems/alpine-mariadb:latest'
-    hostname: npm-db
+    networks:
+      - npm_network
+        #     ipv4_address: 172.20.0.2
+      - nextcloud_network   # conecta com o Nextcloud
+
+    security_opt:
+      - no-new-privileges:true
+
     restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}  # Altere isso para uma senha segura
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - /srv/volumes/npm/db/_data:/var/lib/mysql
-    networks:
-      - default
 
+    depends_on:
+      npm_db:
+        condition: service_healthy
+
+
+  # ====================
+  # BANCO DO NPM
+  # ====================
+  npm_db:
+    image: mariadb:10.11
+    container_name: npm_mariadb
+    hostname: npm_db
+
+    environment:
+      - TZ=America/Maceio
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+
+    volumes:
+      - /srv/docker/volumes/npm/mysql:/var/lib/mysql
+
+    networks:
+      - npm_network
+
+    command:
+      - --transaction-isolation=READ-COMMITTED
+      - --binlog-format=ROW
+      - --skip-name-resolve
+
+    healthcheck:
+      # test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--protocol=TCP"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+
+# ====================
+# NETWORKS
+# ====================
+#
 networks:
-  portainer_default:
+  # npm_network:
+  # name: npm_network
+  # driver: bridge
+  # ipam:
+  #   config:
+  #     - subnet: 172.20.0.0/24
+  #       gateway: 172.20.0.1
+
+
+      
+  npm_network:
     external: true
+
+  nextcloud_network:
+    external: true
+
