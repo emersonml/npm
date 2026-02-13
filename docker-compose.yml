@@ -1,103 +1,80 @@
-
 services:
-  npm:
+  npm-app:
     image: jc21/nginx-proxy-manager:latest
-    container_name: npm
-    hostname: npm
-      #read_only: false
-      #cap_drop:
-      #- ALL
-
+    container_name: npm-app
+    hostname: npm-app
+    restart: unless-stopped
+    
     environment:
       - PUID=${PUID}
       - PGID=${PGID}
-      - TZ=America/Maceio
-
-      # Banco
-      - DB_MYSQL_HOST=${MYSQL_DATABASE}
-      - DB_MYSQL_PORT=${MYSQL_PORT}
+      - TZ=${TZ}
+      
+      # Banco de dados
+      - DB_MYSQL_HOST=npm-db
+      - DB_MYSQL_PORT=3306
       - DB_MYSQL_USER=${MYSQL_USER}
       - DB_MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - DB_MYSQL_NAME=${MYSQL_DATABASE}
-
+    
     volumes:
-      - /srv/docker/volumes/npm/data:/data
-      - /srv/docker/volumes/npm/letsencrypt:/etc/letsencrypt
-
+      - npm-app_data:/data
+      - ./volumes/app/letsencrypt:/etc/letsencrypt
+    
     ports:
       - "80:80"
-      - "81:81"     # painel admin
+      - "81:81"
       - "443:443"
-
+    
     networks:
-      - npm_network
-        #     ipv4_address: 172.20.0.2
-      - nextcloud_network   # conecta com o Nextcloud
-
+      - npm-network
+      - nextcloud-network
+    
     security_opt:
       - no-new-privileges:true
-
-    restart: unless-stopped
-
+    
     depends_on:
-      npm_db:
+      npm-db:
         condition: service_healthy
 
-
-  # ====================
-  # BANCO DO NPM
-  # ====================
-  npm_db:
+  npm-db:
     image: mariadb:10.11
-    container_name: npm_mariadb
-    hostname: npm_db
-
+    container_name: npm-db
+    hostname: npm-db
+    restart: unless-stopped
+    
     environment:
-      - TZ=America/Maceio
+      - TZ=${TZ}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-
+    
     volumes:
-      - /srv/docker/volumes/npm/mysql:/var/lib/mysql
-
+      - npm-db_data:/var/lib/mysql
+    
     networks:
-      - npm_network
-
+      - npm-network
+    
     command:
       - --transaction-isolation=READ-COMMITTED
       - --binlog-format=ROW
       - --skip-name-resolve
-
+    
     healthcheck:
-      # test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--protocol=TCP"]
       interval: 10s
       timeout: 5s
       retries: 10
 
-    restart: unless-stopped
+volumes:
+  npm_db_data:
 
-
-# ====================
-# NETWORKS
-# ====================
-#
 networks:
-  # npm_network:
-  # name: npm_network
-  # driver: bridge
-  # ipam:
-  #   config:
-  #     - subnet: 172.20.0.0/24
-  #       gateway: 172.20.0.1
-
-
-      
-  npm_network:
+  npm-network:
+    name: npm-network
+    driver: bridge
+  
+  nextcloud-network:
+    name: nextcloud-network
     external: true
-
-  nextcloud_network:
-    external: true
-
