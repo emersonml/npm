@@ -18,8 +18,8 @@ services:
       - DB_MYSQL_NAME=${MYSQL_DATABASE}
     
     volumes:
-      - npm-app_data:/data
-      - ./volumes/app/letsencrypt:/etc/letsencrypt
+      - app_data:/data
+      - ${DATA_DIR}/app/letsencrypt:/app/letsencrypt:/etc/letsencrypt
     
     ports:
       - "80:80"
@@ -51,7 +51,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     
     volumes:
-      - npm-db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
     
     networks:
       - npm-network
@@ -68,7 +68,8 @@ services:
       retries: 10
 
 volumes:
-  npm_db_data:
+  app_data:
+  db_data:
 
 networks:
   npm-network:
