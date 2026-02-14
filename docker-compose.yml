@@ -6,8 +6,6 @@ services:
     restart: unless-stopped
     
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
       - TZ=${TZ}
       
       # Banco de dados
