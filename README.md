@@ -1,2 +1,3 @@
-docker network create npm-network
-docker network create nextcloud-network
+sudo docker network create npm-network
+sudo docker network create nextcloud-network
+

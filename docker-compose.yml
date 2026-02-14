@@ -17,7 +17,7 @@ services:
     
     volumes:
       - app_data:/data
-      - ${DATA_DIR}/app/letsencrypt:/app/letsencrypt:/etc/letsencrypt
+      - ./volumes/app/letsencrypt:/etc/letsencrypt
     
     ports:
       - "80:80"
@@ -64,6 +64,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
 
 volumes:
   app_data:
