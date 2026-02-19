@@ -1,82 +1,64 @@
 services:
-  npm-app:
+  app:
     image: jc21/nginx-proxy-manager:latest
     container_name: npm-app
     hostname: npm-app
     restart: unless-stopped
-    
     environment:
       - TZ=${TZ}
-      
       # Banco de dados
       - DB_MYSQL_HOST=npm-db
       - DB_MYSQL_PORT=3306
       - DB_MYSQL_USER=${MYSQL_USER}
       - DB_MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - DB_MYSQL_NAME=${MYSQL_DATABASE}
-    
-    volumes:
-      - app_data:/data
-      - ./volumes/app/letsencrypt:/etc/letsencrypt
-    
+    networks:
+      - npm-network
+      - nextcloud-network
     ports:
       - "80:80"
       - "81:81"
       - "443:443"
-    
-    networks:
-      - npm-network
-      - nextcloud-network
-    
+    volumes:
+      - app_data:/data
+      - ./volumes/app/letsencrypt:/etc/letsencrypt
     security_opt:
       - no-new-privileges:true
-    
     depends_on:
-      npm-db:
+      db:
         condition: service_healthy
-
-  npm-db:
+  db:
     image: mariadb:10.11
     container_name: npm-db
     hostname: npm-db
     restart: unless-stopped
-    
     environment:
       - TZ=${TZ}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    
     volumes:
       - db_data:/var/lib/mysql
-    
     networks:
       - npm-network
-    
     command:
       - --transaction-isolation=READ-COMMITTED
       - --binlog-format=ROW
       - --skip-name-resolve
-    
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--protocol=TCP"]
       interval: 10s
       timeout: 5s
       retries: 10
-
-
-volumes:
-  app_data:
-  db_data:
-
 networks:
   npm-network:
     name: npm-network
     driver: bridge
     external: true
-
-  
   nextcloud-network:
     name: nextcloud-network
     external: true
+volumes:
+  app_data:
+  db_data:
