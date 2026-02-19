@@ -13,8 +13,8 @@ services:
       - DB_MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - DB_MYSQL_NAME=${MYSQL_DATABASE}
     networks:
-      - npm-network
-      - nextcloud-network
+      - npm_network
+      - npm_nextcloud_network
     ports:
       - "80:80"
       - "81:81"
@@ -41,7 +41,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     networks:
-      - npm-network
+      - npm_network
     command:
       - --transaction-isolation=READ-COMMITTED
       - --binlog-format=ROW
@@ -52,12 +52,8 @@ services:
       timeout: 5s
       retries: 10
 networks:
-  npm-network:
-    name: npm-network
-    driver: bridge
-    external: true
-  nextcloud-network:
-    name: nextcloud-network
+  npm_network:
+  npm_nextcloud_network:
     external: true
 volumes:
   app_data:
